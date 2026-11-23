@@ -7,6 +7,45 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
+<main class="container" style="padding-top: 24px;">
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="section-header">
+      <h1 class="site-title">لوحة تحكم المدير</h1>
+    </div>
+    <p style="color: var(--text-secondary);">إدارة طلبات الإجازات والموظفين</p>
+  </div>
+
+  <div class="card">
+    <div class="section-header">
+      <h2 class="section-title">طلبات الإجازات المعلقة</h2>
+    </div>
+    <div class="table-responsive">
+      <table class="employees-table">
+        <thead>
+          <tr>
+            <th>الموظف</th>
+            <th>النوع</th>
+            <th>الفترة</th>
+            <th>الحالة</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>أحمد علي</td>
+            <td>إجازة سنوية</td>
+            <td>5 أيام</td>
+            <td><span class="status-badge status-yellow">قيد الانتظار</span></td>
+            <td class="actions-cell">
+              <button class="btn btn-sm btn-approve" onclick="alert('تم قبول الطلب')">قبول</button>
+              <button class="btn btn-sm btn-reject" onclick="alert('تم رفض الطلب')">رفض</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>    
 </body>
 </html>
+
