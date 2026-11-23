@@ -1,34 +1,81 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-    <title>صفحة الموظف</title>
-    </head>
-    <body>
-      <h1>صفحة الموظف</h1>
-        <!-- صندوق / جرس التنبيهات -->
-        <section id="notifications-box">
-              <h2>🔔 التنبيهات</h2>
-                <ul id="notifications-list">
-                        <li>جاري تحميل التنبيهات...</li>
-                </ul>
-              </section>
-            -->
-        <!-- أماكن عرض البيانات للقراءة فقط -->
-          <p>الرصيد المتبقي: <span id="remaining-balance">...</span></p>
-            <p>حالة البونص: <span id="bonus-status">...</span></p>
-              <p>توقع نهاية السنة: <span id="year-end-forecast">...</span></p>
-
-                <h2>سجل الإجازات</h2>
-                  <ul id="leaves-history">
-                      <li>...</li>
-                        </ul>
-
-                          <!-- ربط المكتبة والملفات -->
-                            <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-                              <script src="supabase.js"></script>
-                                <script src="employee.js"></script>
-                                </body>
-                                </html>
+  <head>
+      <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>صفحة الموظف والتنبيهات</title>
+            <link rel="stylesheet" href="style.css" />
+              <style>
+                    body { font-family: Tahoma, Arial, sans-serif; background: #f5f7fa; margin: 0; padding: 20px; color: #222; }
+                        .container { max-width: 900px; margin: auto; display: grid; gap: 20px; }
+                            .card { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+                                h2, h3 { margin-top: 0; color: #1e293b; }
+                                    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+                                        .stat-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }
+                                            .stat-box span { display: block; font-size: 13px; color: #64748b; margin-bottom: 6px; }
+                                                .stat-box strong { font-size: 18px; color: #0f172a; }
+                                                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                                                        th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: right; }
+                                                            th { background: #f1f5f9; }
+                                                                .notif-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; background: #fffbeb; }
+                                                                    .notif-item.read { background: #f8fafc; opacity: 0.75; }
+                                                                        button { background: #2563eb; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; }
+                                                                            button:disabled { background: #94a3b8; cursor: default; }
+              </style>
+            </head>
+            <body>
+                <div class="container">
+                      <!-- قسم التنبيهات -->
+                        <div class="card">
+                                <h3>🔔 التنبيهات</h3>
+                                    <div id="notifications-list">جاري تحميل التنبيهات...</div>
+                        </div>
+                      
+                          <!-- قسم بيانات الموظف (للقراءة فقط) -->
+                            <div class="card">
+                                    <h2>بيانات الموظف (للقراءة فقط)</h2>
+                                        <div class="stats">
+                                                  <div class="stat-box">
+                                                              <span>الرصيد المتبقي</span>
+                                                                      <strong id="remaining-balance">جاري التحميل...</strong>
+                                                  </div>
+                                                        <div class="stat-box">
+                                                                    <span>حالة البونص</span>
+                                                                            <strong id="bonus-status">جاري التحميل...</strong>
+                                                        </div>
+                                                              <div class="stat-box">
+                                                                          <span>توقع نهاية السنة</span>
+                                                                                  <strong id="year-end-forecast">جاري التحميل...</strong>
+                                                              </div>
+                                                            </div>
+                                                          </div>
+                                                        
+                                                            <!-- قسم سجل الإجازات -->
+                                                              <div class="card">
+                                                                      <h3>سجل الإجازات</h3>
+                                                                          <table>
+                                                                                    <thead>
+                                                                                                <tr>
+                                                                                                              <th>نوع الإجازة</th>
+                                                                                                                        <th>من تاريخ</th>
+                                                                                                                                  <th>إلى تاريخ</th>
+                                                                                                                                            <th>عدد الأيام</th>
+                                                                                                                                                      <th>الحالة</th>
+                                                                                                </tr>
+                                                                                              </thead>
+                                                                                                    <tbody id="leaves-history">
+                                                                                                                <tr><td colspan="5">جاري تحميل سجل الإجازات...</td></tr>
+                                                                                                    </tbody>
+                                                                                                  </table>
+                                                                                                </div>
+                                                                                              </div>
+                                                                                            
+                                                                                              <!-- ربط مكتبة Supabase وملف الاتصال وملف الصفحة -->
+                                                                                              <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+                                                                                              <script src="supabase.js"></script>
+                                                                                              <script src="employee.js"></script>
+                                                                                            </body>
+                                                                                          </html>
+                                                                                        
                                 
                   
