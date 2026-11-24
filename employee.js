@@ -1,84 +1,139 @@
+// التأكد من وجود كائن الاتصال بـ Supabase من ملف supabase.js
+const sb = window.supabaseClient || window._supabase || (typeof supabaseClient !== "undefined" ? supabaseClient : null);
 
-async function loadEmployeeDashboard() {
-    const { data: { user } } = await supabaseClient.auth.getUser();
-      if (!user) return;
+document.addEventListener("DOMContentLoaded", async () => {
+  const balanceEl = document.getElementById("remaining-balance");
+    const bonusEl = document.getElementById("bonus-status");
+      const forecastEl = document.getElementById("year-end-forecast");
+        const leavesEl = document.getElementById("leaves-history");
+          const notifEl = document.getElementById("notifications-list");
 
-        const { data: emp } = await supabaseClient
-            .from("employees")
-                .select("id, remaining_balance, bonus_status, year_end_forecast")
-                    .eq("auth_id", user.id)
-                        .single();
+            const showFallback = (msg) => {
+                balanceEl.textContent = msg;
+                    bonusEl.textContent = msg;
+                        forecastEl.textContent = msg;
+                            leavesEl.innerHTML = `<tr><td colspan="5">${msg}</td></tr>`;
+                                notifEl.textContent = msg;
+                                  };
 
-                          if (emp) {
-                                document.getElementById("remaining-balance").textContent = emp.remaining_balance ?? "غير متاح";
-                                    document.getElementById("bonus-status").textContent = emp.bonus_status ?? "غير متاح";
-                                        document.getElementById("year-end-forecast").textContent = emp.year_end_forecast ?? "غير متاح";
-                          }
-
-                            const { data: leaves } = await supabaseClient
-                                .from("leaves")
-                                    .select("*")
-                                        .eq("employee_id", emp?.id);
-
-                                          const list = document.getElementById("leaves-history");
-                                            list.innerHTML = "";
-
-                                              if (!leaves || leaves.length === 0) {
-                                                    list.innerHTML = "<li>لا توجد إجازات</li>";
-                                              } else {
-                                                    leaves.forEach((item) => {
-                                                            const li = document.createElement("li");
-                                                                  li.textContent = `${item.start_date || ""} - ${item.end_date || ""} (${item.status || ""})`;
-                                                                        list.appendChild(li);
-                                                    });
+                                    if (!sb) {
+                                        console.error("ملف supabase.js غير مربوط بشكل صحيح.");
+                                            showFallback("خطأ في الاتصال بقاعدة البيانات");
+                                                return;
                                                   }
 
-                                                    await loadNotifications(user.id);
-                                                }
+                                                    try {
+                                                        // 1. جلب المستخدم الحالي من جلسة تسجيل الدخول
+                                                            const { data: { user }, error: authError } = await sb.auth.getUser();
 
-                                                async function loadNotifications(userId) {
-                                                    const { data: notifications } = await supabaseClient
-                                                        .from("notifications")
-                                                            .select("*")
-                                                                .or(`user_id.eq.${userId},recipient_id.eq.${userId}`);
+                                                                if (authError || !user) {
+                                                                      showFallback("يرجى تسجيل الدخول أولاً لعرض البيانات");
+                                                                            return;
+                                                                                }
 
-                                                                  const notifList = document.getElementById("notifications-list");
-                                                                    if (!notifList) return;
-                                                                      notifList.innerHTML = "";
+                                                                                    // 2. جلب بيانات الموظف الحالي عبر auth_id
+                                                                                        const { data: emp, error: empError } = await sb
+                                                                                              .from("employees")
+                                                                                                    .select("*")
+                                                                                                          .eq("auth_id", user.id)
+                                                                                                                .single();
 
-                                                                        if (!notifications || notifications.length === 0) {
-                                                                              notifList.innerHTML = "<li>لا توجد تنبيهات حالياً</li>";
-                                                                                  return;
-                                                                        }
+                                                                                                                    if (empError || !emp) {
+                                                                                                                          console.error("خطأ في جلب بيانات الموظف:", empError);
+                                                                                                                                balanceEl.textContent = "لا توجد بيانات";
+                                                                                                                                      bonusEl.textContent = "لا توجد بيانات";
+                                                                                                                                            forecastEl.textContent = "لا توجد بيانات";
+                                                                                                                                                } else {
+                                                                                                                                                      const remaining = emp.remaining_balance ?? emp.leave_balance ?? 0;
+                                                                                                                                                            balanceEl.textContent = `${remaining} يوم`;
+                                                                                                                                                                  bonusEl.textContent = emp.bonus_status ?? (remaining > 0 ? "مستحق للبونص" : "غير مستحق (تجاوز الليمت)");
+                                                                                                                                                                        forecastEl.textContent = emp.year_end_forecast ?? `متوقع تبقّي ${remaining} يوم بنهاية السنة`;
+                                                                                                                                                                            }
 
-                                                                          notifications.forEach((n) => {
-                                                                                const li = document.createElement("li");
-                                                                                    li.textContent = `${n.message || n.title || "تنبيه تجاوز الليمت"} `;
+                                                                                                                                                                                // 3. جلب سجل الإجازات من جدول leaves
+                                                                                                                                                                                    const employeeFilterId = emp ? emp.id : user.id;
+                                                                                                                                                                                        const { data: leaves, error: leavesError } = await sb
+                                                                                                                                                                                              .from("leaves")
+                                                                                                                                                                                                    .select("*")
+                                                                                                                                                                                                          .or(`employee_id.eq.${employeeFilterId},auth_id.eq.${user.id}`)
+                                                                                                                                                                                                                .order("created_at", { ascending: false });
 
-                                                                                        const btn = document.createElement("button");
-                                                                                            const alreadyRead = Boolean(n.is_read) || n.status === "read";
-                                                                                                btn.textContent = alreadyRead ? "مقروء" : "تعليم كمقروء";
-                                                                                                    btn.disabled = alreadyRead;
+                                                                                                                                                                                                                    if (leavesError) {
+                                                                                                                                                                                                                          console.error("خطأ في جلب الإجازات:", leavesError);
+                                                                                                                                                                                                                                leavesEl.innerHTML = `<tr><td colspan="5">تعذّر تحميل سجل الإجازات</td></tr>`;
+                                                                                                                                                                                                                                    } else if (!leaves || leaves.length === 0) {
+                                                                                                                                                                                                                                          leavesEl.innerHTML = `<tr><td colspan="5">لا توجد إجازات مسجلة حتى الآن</td></tr>`;
+                                                                                                                                                                                                                                              } else {
+                                                                                                                                                                                                                                                    leavesEl.innerHTML = leaves.map((leave) => `
+                                                                                                                                                                                                                                                            <tr>
+                                                                                                                                                                                                                                                                      <td>${leave.type || leave.leave_type || "إجازة"}</td>
+                                                                                                                                                                                                                                                                                <td>${leave.start_date || "-"}</td>
+                                                                                                                                                                                                                                                                                          <td>${leave.end_date || "-"}</td>
+                                                                                                                                                                                                                                                                                                    <td>${leave.days || "-"}</td>
+                                                                                                                                                                                                                                                                                                              <td>${leave.status || "قيد المراجعة"}</td>
+                                                                                                                                                                                                                                                                                                                      </tr>
+                                                                                                                                                                                                                                                                                                                            `).join("");
+                                                                                                                                                                                                                                                                                                                                }
 
-                                                                                                        btn.addEventListener("click", async () => {
-                                                                                                                const { error } = await supabaseClient
-                                                                                                                      .from("notifications")
-                                                                                                                            .update({ is_read: true, status: "read" })
-                                                                                                                                  .eq("id", n.id);
-                                                                                                                                
-                                                                                                                                      if (!error) {
-                                                                                                                                                btn.textContent = "مقروء";
-                                                                                                                                                      btn.disabled = true;
-                                                                          }
-                                                                          });
+                                                                                                                                                                                                                                                                                                                                    // 4. جلب التنبيهات من جدول notifications
+                                                                                                                                                                                                                                                                                                                                        await loadNotifications(user.id, emp?.id);
 
-                                                                              li.appendChild(btn);
-                                                                                  notifList.appendChild(li);
-                                                                        });
-                                                                      }
+                                                                                                                                                                                                                                                                                                                                          } catch (err) {
+                                                                                                                                                                                                                                                                                                                                              console.error("خطأ غير متوقع:", err);
+                                                                                                                                                                                                                                                                                                                                                  showFallback("حدث خطأ أثناء تحميل البيانات");
+                                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                                    });
 
-                                                                      loadEmployeeDashboard();
-                                                                      
-                                                    })
-                          }
-}
+                                                                                                                                                                                                                                                                                                                                                    async function loadNotifications(authId, empId) {
+                                                                                                                                                                                                                                                                                                                                                      const notifEl = document.getElementById("notifications-list");
+
+                                                                                                                                                                                                                                                                                                                                                        const { data: notifications, error } = await sb
+                                                                                                                                                                                                                                                                                                                                                            .from("notifications")
+                                                                                                                                                                                                                                                                                                                                                                .select("*")
+                                                                                                                                                                                                                                                                                                                                                                    .or(`user_id.eq.${authId}${empId ? `,employee_id.eq.${empId}` : ""}`)
+                                                                                                                                                                                                                                                                                                                                                                        .order("created_at", { ascending: false });
+
+                                                                                                                                                                                                                                                                                                                                                                          if (error) {
+                                                                                                                                                                                                                                                                                                                                                                              console.error("خطأ في جلب التنبيهات:", error);
+                                                                                                                                                                                                                                                                                                                                                                                  notifEl.textContent = "تعذّر تحميل التنبيهات";
+                                                                                                                                                                                                                                                                                                                                                                                      return;
+                                                                                                                                                                                                                                                                                                                                                                                        }
+
+                                                                                                                                                                                                                                                                                                                                                                                          if (!notifications || notifications.length === 0) {
+                                                                                                                                                                                                                                                                                                                                                                                              notifEl.textContent = "لا توجد تنبيهات حالياً";
+                                                                                                                                                                                                                                                                                                                                                                                                  return;
+                                                                                                                                                                                                                                                                                                                                                                                                    }
+
+                                                                                                                                                                                                                                                                                                                                                                                                      notifEl.innerHTML = notifications.map((n) => `
+                                                                                                                                                                                                                                                                                                                                                                                                          <div class="notif-item ${n.is_read ? "read" : ""}" id="notif-${n.id}">
+                                                                                                                                                                                                                                                                                                                                                                                                                <span>${n.message || n.title || "تنبيه تجاوز الليمت"}</span>
+                                                                                                                                                                                                                                                                                                                                                                                                                      <button ${n.is_read ? "disabled" : ""} onclick="markAsRead('${n.id}', this)">
+                                                                                                                                                                                                                                                                                                                                                                                                                              ${n.is_read ? "مقروء ✓" : "تعليم كمقروء"}
+                                                                                                                                                                                                                                                                                                                                                                                                                                    </button>
+                                                                                                                                                                                                                                                                                                                                                                                                                                        </div>
+                                                                                                                                                                                                                                                                                                                                                                                                                                          `).join("");
+                                                                                                                                                                                                                                                                                                                                                                                                                                          }
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                          // 5. تحديث حالة التنبيه كمقروء في جدول notifications عبر update
+                                                                                                                                                                                                                                                                                                                                                                                                                                          async function markAsRead(notifId, btn) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                            btn.disabled = true;
+                                                                                                                                                                                                                                                                                                                                                                                                                                              btn.textContent = "جاري التحديث...";
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                const { error } = await sb
+                                                                                                                                                                                                                                                                                                                                                                                                                                                    .from("notifications")
+                                                                                                                                                                                                                                                                                                                                                                                                                                                        .update({ is_read: true })
+                                                                                                                                                                                                                                                                                                                                                                                                                                                            .eq("id", notifId);
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                              if (error) {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                  console.error("خطأ في تحديث التنبيه:", error);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                      btn.disabled = false;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                          btn.textContent = "تعليم كمقروء";
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                              alert("تعذّر تحديث حالة التنبيه");
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  return;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      btn.textContent = "مقروء ✓";
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        const item = document.getElementById(`notif-${notifId}`);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          if (item) item.classList.add("read");
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
