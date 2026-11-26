@@ -1,3 +1,4 @@
+
 const sb =
     typeof supabaseClient !== "undefined"
         ? supabaseClient
@@ -41,7 +42,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             .single();
 
         if (empError || !emp) {
-            console.error("Employee fetch error:", empError);
             showError("لم يتم العثور على بيانات الموظف");
             return;
         }
@@ -198,14 +198,6 @@ async function loadNotifications(employeeId) {
     const notifEl = document.getElementById("notifications-list");
 
     if (!notifEl) return;
-
-    if (!employeeId) {
-        notifEl.replaceChildren();
-        const emptyItem = document.createElement("li");
-        emptyItem.textContent = "لا توجد تنبيهات";
-        notifEl.appendChild(emptyItem);
-        return;
-    }
 
     const { data: notifications, error } = await sb
         .from("notifications")
