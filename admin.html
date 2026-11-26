@@ -8,13 +8,83 @@
 </head>
 <body>
 <main class="container" style="padding-top: 24px;">
+  <!-- رأس الصفحة + زر تصدير CSV -->
   <div class="card" style="margin-bottom: 24px;">
-    <div class="section-header">
-      <h1 class="site-title">لوحة تحكم المدير</h1>
+    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <h1 class="site-title">لوحة تحكم المدير</h1>
+        <p style="color: var(--text-secondary);">إدارة الموظفين، الأرصدة، الرواتب، وتصدير CSV</p>
+      </div>
+      <button type="button" id="exportCsvBtn" class="btn btn-approve">تصدير بيانات الرواتب (CSV)</button>
     </div>
-    <p style="color: var(--text-secondary);">إدارة طلبات الإجازات والموظفين</p>
   </div>
 
+  <!-- فورم إضافة موظف جديد -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="section-header">
+      <h2 class="section-title">إضافة موظف جديد</h2>
+    </div>
+    <form id="addEmployeeForm" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end;">
+      <div>
+        <label for="full_name">الاسم الكامل</label>
+        <input type="text" id="full_name" placeholder="مثال: محمد أحمد" required />
+      </div>
+      <div>
+        <label for="email">البريد الإلكتروني</label>
+        <input type="email" id="email" placeholder="name@example.com" required />
+      </div>
+      <div>
+        <label for="role">الدور (Role)</label>
+        <select id="role">
+          <option value="employee">employee</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+      <div>
+        <label for="total_annual_days">الرصيد الكلي</label>
+        <input type="number" id="total_annual_days" value="21" min="0" required />
+      </div>
+      <div>
+        <label for="base_salary">الراتب الأساسي</label>
+        <input type="number" id="base_salary" value="8000" min="0" step="0.01" required />
+      </div>
+      <div>
+        <label for="permission_hours">ساعات الأذونات</label>
+        <input type="number" id="permission_hours" value="0" min="0" />
+      </div>
+      <div>
+        <button type="submit" class="btn btn-approve" style="width: 100%;">إضافة موظف</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- جدول الموظفين -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="section-header">
+      <h2 class="section-title">بيانات الموظفين والأرصدة والرواتب</h2>
+    </div>
+    <div class="table-responsive">
+      <table class="employees-table">
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>الرصيد الكلي</th>
+            <th>المستهلك</th>
+            <th>المتبقي</th>
+            <th>ساعات الأذونات</th>
+            <th>الراتب الأساسي</th>
+            <th>الراتب الصافي</th>
+            <th>الشارات</th>
+          </tr>
+        </thead>
+        <tbody id="employeesTableBody">
+          <!-- يتم ملء الصفوف تلقائياً من admin.js -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- جدول طلبات الإجازات المعلقة (الموجود مسبقاً) -->
   <div class="card">
     <div class="section-header">
       <h2 class="section-title">طلبات الإجازات المعلقة</h2>
@@ -45,7 +115,11 @@
       </table>
     </div>
   </div>
-</main>    
+</main>
+
+<!-- ربط مكتبة Supabase ثم ملف الاتصال الموجود مسبقاً ثم ملف admin.js -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="admin.js"></script>
 </body>
 </html>
-
