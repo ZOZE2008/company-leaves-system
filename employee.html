@@ -16,14 +16,19 @@
   </section>
 
   <!-- أماكن عرض البيانات للقراءة فقط -->
-  <p>الرصيد المتبقي: <span id="remaining-balance">...</span></p>
-  <p>حالة البونص: <span id="bonus-status">...</span></p>
-  <p>توقع نهاية السنة: <span id="year-end-forecast">...</span></p>
+  <section id="summary-box">
+    <p>الرصيد المتبقي: <span id="remaining-balance">...</span></p>
+    <p>حالة البونص: <span id="bonus-status">...</span></p>
+    <p>توقع نهاية السنة: <span id="year-end-forecast">...</span></p>
+  </section>
 
-  <h2>سجل الإجازات</h2>
-  <ul id="leaves-history">
-    <li>...</li>
-  </ul>
+  <!-- سجل الإجازات -->
+  <section id="leaves-box">
+    <h2>سجل الإجازات</h2>
+    <ul id="leaves-history">
+      <li>جاري تحميل سجل الإجازات...</li>
+    </ul>
+  </section>
 
   <!-- ربط المكتبة والملفات -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -31,4 +36,3 @@
   <script src="employee.js"></script>
 </body>
 </html>
-                  
