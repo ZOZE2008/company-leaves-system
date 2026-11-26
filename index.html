@@ -1,39 +1,65 @@
-const loginForm = document.getElementById('loginForm');
-const messageEl = document.getElementById('message');
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل الدخول</title>
+</head>
+<body>
 
-loginForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  messageEl.textContent = 'Signing in...';
+  <h2>تسجيل الدخول</h2>
 
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value;
+  <form id="loginForm">
+    <input type="email" id="email" placeholder="البريد الإلكتروني" required>
+    <input type="password" id="password" placeholder="كلمة المرور" required>
+    <button type="submit">دخول</button>
+  </form>
 
-  const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password,
-  });
+  <p id="message"></p>
 
-  if (authError) {
-    messageEl.textContent = `Login failed: ${authError.message}`;
-    return;
-  }
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
 
-  const userId = authData.user.id;
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const messageEl = document.getElementById('message');
 
-  const { data: empData, error: empError } = await supabaseClient
-    .from('employees')
-    .select('role, full_name')
-    .eq('auth_id', userId)
-    .single();
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      messageEl.textContent = 'Signing in...';
 
-  if (empError || !empData) {
-    messageEl.textContent = 'Account not found in employees table.';
-    return;
-  }
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
 
-  if (empData.role === 'admin') {
-    window.location.href = 'admin.html';
-  } else {
-    window.location.href = 'employee.html';
-  }
-});
+      const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        messageEl.textContent = `Login failed: ${authError.message}`;
+        return;
+      }
+
+      const userId = authData.user.id;
+
+      const { data: empData, error: empError } = await supabaseClient
+        .from('employees')
+        .select('role, full_name')
+        .eq('auth_id', userId)
+        .single();
+
+      if (empError || !empData) {
+        messageEl.textContent = 'Account not found in employees table.';
+        return;
+      }
+
+      if (empData.role === 'admin') {
+        window.location.href = 'admin.html';
+      } else {
+        window.location.href = 'employee.html';
+      }
+    });
+  </script>
+</body>
+</html>
