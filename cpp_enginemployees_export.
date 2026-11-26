@@ -1,0 +1,4 @@
+id,full_name,base_salary,total_annual_days,used_days,permission_hours
+1,Ahmed,8000,21,5,0
+2,Sara,8000,21,25,0
+3,Omar,8000,21,16,16 
