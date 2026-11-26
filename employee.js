@@ -1,164 +1,290 @@
-// التأكد من وجود كائن الاتصال بـ Supabase من ملف supabase.js
+
 const sb =
-  window.supabaseClient ||
-  window._supabase ||
-  (typeof supabaseClient !== "undefined" ? supabaseClient : null);
+    typeof supabaseClient !== "undefined"
+        ? supabaseClient
+        : window.supabaseClient;
+
+let currentEmployeeId = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const balanceEl = document.getElementById("remaining-balance");
-  const bonusEl = document.getElementById("bonus-status");
-  const forecastEl = document.getElementById("year-end-forecast");
-  const leavesEl = document.getElementById("leaves-history");
-  const notifEl = document.getElementById("notifications-list");
+    const balanceEl = document.getElementById("remaining-balance");
+    const bonusEl = document.getElementById("bonus-status");
+    const forecastEl = document.getElementById("year-end-forecast");
+    const leavesEl = document.getElementById("leaves-history");
+    const notifEl = document.getElementById("notifications-list");
 
-  const showFallback = (msg) => {
-    if (balanceEl) balanceEl.textContent = msg;
-    if (bonusEl) bonusEl.textContent = msg;
-    if (forecastEl) forecastEl.textContent = msg;
-    if (leavesEl) leavesEl.innerHTML = `<li>${msg}</li>`;
-    if (notifEl) notifEl.innerHTML = `<li>${msg}</li>`;
-  };
+    const showError = (message) => {
+        if (balanceEl) balanceEl.textContent = message;
+        if (leavesEl) leavesEl.textContent = message;
+        if (notifEl) notifEl.textContent = message;
+    };
 
-  if (!sb) {
-    console.error("ملف supabase.js غير مربوط بشكل صحيح.");
-    showFallback("خطأ في الاتصال بقاعدة البيانات");
-    return;
-  }
-
-  try {
-    // 1. جلب المستخدم الحالي من جلسة تسجيل الدخول
-    const {
-      data: { user },
-      error: authError,
-    } = await sb.auth.getUser();
-
-    if (authError || !user) {
-      showFallback("يرجى تسجيل الدخول أولاً لعرض البيانات");
-      return;
+    if (!sb) {
+        showError("خطأ في الاتصال بقاعدة البيانات");
+        return;
     }
 
-    // 2. جلب بيانات الموظف الحالي عبر auth_id
-    const { data: emp, error: empError } = await sb
-      .from("employees")
-      .select("*")
-      .eq("auth_id", user.id)
-      .single();
+    try {
+        // 1. التأكد من تسجيل الدخول
+        const { data: { user }, error: authError } =
+            await sb.auth.getUser();
 
-    if (empError || !emp) {
-      console.error("خطأ في جلب بيانات الموظف:", empError);
-      if (balanceEl) balanceEl.textContent = "لا توجد بيانات";
-      if (bonusEl) bonusEl.textContent = "لا توجد بيانات";
-      if (forecastEl) forecastEl.textContent = "لا توجد بيانات";
-    } else {
-      const remaining = emp.remaining_balance ?? emp.leave_balance ?? 0;
-      if (balanceEl) balanceEl.textContent = `${remaining} يوم`;
-      if (bonusEl) {
-        bonusEl.textContent =
-          emp.bonus_status ??
-          (remaining > 0 ? "مستحق للبونص" : "غير مستحق (تجاوز الليمت)");
-      }
-      if (forecastEl) {
-        forecastEl.textContent =
-          emp.year_end_forecast ?? `متوقع تبقّي ${remaining} يوم بنهاية السنة`;
-      }
+        if (authError || !user) {
+            showError("يرجى تسجيل الدخول أولاً");
+            return;
+        }
+
+        // 2. جلب بيانات الموظف
+        const { data: emp, error: empError } = await sb
+            .from("employees")
+            .select("*")
+            .eq("auth_id", user.id)
+            .single();
+
+        if (empError || !emp) {
+            showError("لم يتم العثور على بيانات الموظف");
+            return;
+        }
+
+        currentEmployeeId = emp.id;
+
+        // 3. عرض بطاقة الموظف
+        const nameEl = document.getElementById("employee-name");
+        const emailEl = document.getElementById("employee-email");
+        const salaryEl = document.getElementById("base-salary");
+
+        if (nameEl) nameEl.textContent = emp.full_name || "-";
+        if (emailEl) emailEl.textContent = emp.email || user.email || "-";
+
+        const baseSalary = Number(emp.base_salary || 0);
+
+        if (salaryEl) {
+            salaryEl.textContent = baseSalary.toFixed(2) + " جنيه";
+        }
+
+        // 4. جلب إعدادات الشركة
+        const { data: settings, error: settingsError } = await sb
+            .from("company_settings")
+            .select("*")
+            .eq("id", 1)
+            .single();
+
+        if (settingsError || !settings) {
+            if (bonusEl) bonusEl.textContent = "تعذر تحميل الإعدادات";
+            if (forecastEl) forecastEl.textContent = "تعذر الحساب";
+        }
+
+        // 5. عرض رصيد الإجازات وساعات الأذونات
+        const remaining = Number(emp.remaining_days || 0);
+        const usedDays = Number(emp.used_days || 0);
+        const totalDays = Number(emp.total_annual_days || 0);
+        const permissionHours = Number(emp.permission_hours || 0);
+
+        if (balanceEl) {
+            balanceEl.textContent = remaining + " يوم";
+        }
+
+        const permissionEl =
+            document.getElementById("permission-hours");
+
+        if (permissionEl) {
+            permissionEl.textContent = permissionHours + " ساعة";
+        }
+
+        // 6. حساب الراتب والبونص
+        if (settings) {
+            const hoursPerDay =
+                Number(settings.hours_per_leave_day) || 8;
+
+            const warningLimit =
+                Number(settings.warning_limit_days);
+
+            const bonusMin =
+                Number(settings.bonus_min_remaining_days);
+
+            const bonusAmount =
+                Number(settings.bonus_amount);
+
+            const extraDays = Math.floor(
+                permissionHours / hoursPerDay
+            );
+
+            const effectiveUsed = usedDays + extraDays;
+
+            const effectiveRemaining = totalDays - effectiveUsed;
+
+            const dailyRate = baseSalary / 30;
+
+            let bonus = 0;
+            let deduction = 0;
+            let status = "";
+
+            if (effectiveRemaining < 0) {
+                deduction = Math.abs(effectiveRemaining) * dailyRate;
+                status = "تجاوز الرصيد - خصم مالي";
+            } else if (effectiveUsed >= warningLimit) {
+                status = "تحذير: تجاوز حد التنبيه";
+            } else if (effectiveRemaining >= bonusMin) {
+                bonus = bonusAmount;
+                status = "مستحق للبونص";
+            } else {
+                status = "طبيعي";
+            }
+
+            const netSalary = baseSalary + bonus - deduction;
+
+            if (bonusEl) {
+                bonusEl.textContent = status;
+            }
+
+            const netEl = document.getElementById("net-salary");
+
+            if (netEl) {
+                netEl.textContent =
+                    netSalary.toFixed(2) + " جنيه";
+            }
+
+            if (forecastEl) {
+                forecastEl.textContent =
+                    "الأيام المستخدمة فعلياً: " +
+                    effectiveUsed +
+                    " - المتبقي بعد احتساب الأذونات: " +
+                    effectiveRemaining;
+            }
+        }
+
+        // 7. جلب سجل الإجازات وترتيبه
+        const { data: leaves, error: leavesError } = await sb
+            .from("leaves")
+            .select("*")
+            .eq("employee_id", emp.id)
+            .order("start_date", { ascending: false });
+
+        if (leavesEl) {
+            leavesEl.replaceChildren();
+
+            if (leavesError) {
+                leavesEl.textContent = "تعذر تحميل سجل الإجازات";
+            } else if (!leaves || leaves.length === 0) {
+                leavesEl.textContent = "لا توجد إجازات مسجلة";
+            } else {
+                leaves.forEach((leave) => {
+                    const item = document.createElement("li");
+
+                    item.textContent =
+                        (leave.reason || "إجازة") +
+                        " - " +
+                        (leave.start_date || "-") +
+                        " - " +
+                        (leave.days_count || 0) +
+                        " أيام";
+
+                    leavesEl.appendChild(item);
+                });
+            }
+        }
+
+        // 8. جلب التنبيهات
+        await loadNotifications(emp.id);
+
+    } catch (error) {
+        console.error("Employee page error:", error);
+        showError("حدث خطأ أثناء تحميل البيانات");
     }
-
-    // 3. جلب سجل الإجازات من جدول leaves
-    const employeeFilterId = emp ? emp.id : user.id;
-    const { data: leaves, error: leavesError } = await sb
-      .from("leaves")
-      .select("*")
-      .eq("employee_id", employeeFilterId)
-      .order("created_at", { ascending: false });
-
-    if (leavesEl) {
-      if (leavesError) {
-        console.error("خطأ في جلب الإجازات:", leavesError);
-        leavesEl.innerHTML = `<li>تعذّر تحميل سجل الإجازات</li>`;
-      } else if (!leaves || leaves.length === 0) {
-        leavesEl.innerHTML = `<li>لا توجد إجازات مسجلة حتى الآن</li>`;
-      } else {
-        leavesEl.innerHTML = leaves
-          .map(
-            (leave) => `
-          <li>
-            ${leave.type || leave.leave_type || "إجازة"} —
-            من ${leave.start_date || "-"} إلى ${leave.end_date || "-"}
-            (${leave.days || "-"} أيام) —
-            <strong>${leave.status || "قيد المراجعة"}</strong>
-          </li>
-        `
-          )
-          .join("");
-      }
-    }
-
-    // 4. جلب التنبيهات من جدول notifications
-    await loadNotifications(user.id, emp?.id);
-  } catch (err) {
-    console.error("خطأ غير متوقع:", err);
-    showFallback("حدث خطأ أثناء تحميل البيانات");
-  }
 });
 
-async function loadNotifications(authId, empId) {
-  const notifEl = document.getElementById("notifications-list");
-  if (!notifEl) return;
+// 9. تحميل التنبيهات
+async function loadNotifications(employeeId) {
+    const notifEl = document.getElementById("notifications-list");
 
-  let query = sb.from("notifications").select("*");
-  if (empId) {
-    query = query.or(`user_id.eq.${authId},employee_id.eq.${empId}`);
-  } else {
-    query = query.eq("user_id", authId);
-  }
+    if (!notifEl) return;
 
-  const { data: notifications, error } = await query.order("created_at", {
-    ascending: false,
-  });
+    const { data: notifications, error } = await sb
+        .from("notifications")
+        .select("*")
+        .eq("employee_id", employeeId)
+        .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("خطأ في جلب التنبيهات:", error);
-    notifEl.innerHTML = `<li>تعذّر تحميل التنبيهات</li>`;
-    return;
-  }
+    notifEl.replaceChildren();
 
-  if (!notifications || notifications.length === 0) {
-    notifEl.innerHTML = `<li>لا توجد تنبيهات حالياً</li>`;
-    return;
-  }
+    if (error) {
+        console.error("Notifications error:", error);
+        notifEl.textContent = "تعذر تحميل التنبيهات";
+        return;
+    }
 
-  notifEl.innerHTML = notifications
-    .map(
-      (n) => `
-    <li class="notif-item ${n.is_read ? "read" : ""}" id="notif-${n.id}">
-      <span>${n.message || n.title || "تنبيه تجاوز الليمت"}</span>
-      <button ${n.is_read ? "disabled" : ""} onclick="markAsRead('${n.id}', this)">
-        ${n.is_read ? "مقروء ✓" : "تعليم كمقروء"}
-      </button>
-    </li>
-  `
-    )
-    .join("");
+    if (!notifications || notifications.length === 0) {
+        notifEl.textContent = "لا توجد تنبيهات حالياً";
+        return;
+    }
+
+    const unreadCount = notifications.filter(
+        n => n.is_read === false
+    ).length;
+
+    const heading = document.querySelector(
+        "#notifications-box h2"
+    );
+
+    if (heading) {
+        heading.textContent =
+            "🔔 التنبيهات (" + unreadCount + " غير مقروء)";
+    }
+
+    notifications.forEach((notification) => {
+        const item = document.createElement("li");
+
+        item.className = notification.is_read
+            ? "notif-item read"
+            : "notif-item";
+
+        const message = document.createElement("span");
+
+        message.textContent = notification.message || "تنبيه";
+
+        item.appendChild(message);
+
+        if (!notification.is_read) {
+            const button = document.createElement("button");
+
+            button.textContent = "تعليم كمقروء";
+
+            button.addEventListener("click", async () => {
+                await markAsRead(notification.id, button, item);
+            });
+
+            item.appendChild(button);
+        } else {
+            const label = document.createElement("span");
+            label.textContent = " ✓ مقروء";
+            item.appendChild(label);
+        }
+
+        notifEl.appendChild(item);
+    });
 }
 
-// 5. تحديث حالة التنبيه كمقروء في جدول notifications عبر update
-async function markAsRead(notifId, btn) {
-  btn.disabled = true;
-  btn.textContent = "جاري التحديث...";
+// 10. تحديث التنبيه إلى مقروء
+async function markAsRead(notifId, button, item) {
+    button.disabled = true;
+    button.textContent = "جاري التحديث...";
 
-  const { error } = await sb
-    .from("notifications")
-    .update({ is_read: true })
-    .eq("id", notifId);
+    const { error } = await sb
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("id", notifId)
+        .eq("employee_id", currentEmployeeId);
 
-  if (error) {
-    console.error("خطأ في تحديث التنبيه:", error);
-    btn.disabled = false;
-    btn.textContent = "تعليم كمقروء";
-    alert("تعذّر تحديث حالة التنبيه");
-    return;
-  }
+    if (error) {
+        console.error("Update notification error:", error);
 
-  btn.textContent = "مقروء ✓";
-  btn.closest(".notif-item")?.classList.add("read");
+        button.disabled = false;
+        button.textContent = "تعليم كمقروء";
+
+        alert("تعذر تحديث حالة التنبيه");
+        return;
+    }
+
+    item.classList.add("read");
+    await loadNotifications(currentEmployeeId);
 }
