@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تسجيل الدخول</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <main class="container" style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
@@ -13,8 +14,8 @@
       <h1 class="site-title" style="font-size: 1.8rem;">تسجيل الدخول</h1>
       <p style="color: var(--text-secondary); margin-top: 8px;">أدخل بيانات حسابك للمتابعة</p>
     </div>
-    
-    <form class="employee-form" onsubmit="event.preventDefault();">
+
+    <form id="loginForm" class="employee-form">
       <div class="form-group">
         <label class="form-label" for="email">البريد الإلكتروني</label>
         <input class="form-input" type="email" id="email" required placeholder="name@company.com">
@@ -25,12 +26,45 @@
         <input class="form-input" type="password" id="password" required placeholder="••••••••">
       </div>
 
+      <p id="loginError" style="color: #dc2626; font-size: 0.9rem; margin-top: 10px; display: none;"></p>
+
       <div class="form-actions" style="margin-top: 24px;">
-        <button type="submit" class="btn btn-primary" style="width: 100%;">دخول</button>
+        <button id="loginBtn" type="submit" class="btn btn-primary" style="width: 100%;">دخول</button>
       </div>
     </form>
   </div>
-</main>    
+</main>
+
+<script>
+  const SUPABASE_URL = "https://jlardcellqqkpamfmhje.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_17zmHH8Raf_qs0_bNkFeRw_7eh_y5";
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const loginForm = document.getElementById("loginForm");
+  const loginBtn = document.getElementById("loginBtn");
+  const loginError = document.getElementById("loginError");
+
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    loginError.style.display = "none";
+    loginBtn.disabled = true;
+    loginBtn.textContent = "جاري الدخول...";
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      loginError.textContent = "بيانات الدخول غير صحيحة: " + error.message;
+      loginError.style.display = "block";
+      loginBtn.disabled = false;
+      loginBtn.textContent = "دخول";
+      return;
+    }
+
+    window.location.href = "employee.html";
+  });
+</script>
 </body>
 </html>
-
