@@ -1,3 +1,4 @@
+import { supabaseClient } from "./supabase.js";
 // =====================================================
 // admin.js  (النسخة المعدّلة الكاملة)
 // يعتمد على supabase.js اللي بيعرّف المتغير supabaseClient
