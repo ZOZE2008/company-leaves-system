@@ -190,8 +190,17 @@ async function addEmployee(event) {
 
 // ---------- الخطوة 3ب: تصدير CSV لبرنامج C++ ----------
 function exportEmployeesCSV() {
-  const headers = ["full_name", "base_salary", "total_annual_days", "used_days", "permission_hours"];
+  const headers = [
+    "id",
+    "full_name",
+    "base_salary",
+    "total_annual_days",
+    "used_days",
+    "permission_hours"
+  ];
+
   const rows = employeesList.map((emp) => [
+    Number(emp.id ?? 0),
     `"${protectCsvText(emp.full_name).replace(/"/g, '""')}"`,
     Number(emp.base_salary ?? 0),
     Number(emp.total_annual_days ?? 0),

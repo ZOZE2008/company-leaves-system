@@ -1,45 +1,50 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const loginForm = document.getElementById("loginForm");
-  const emailInput = document.getElementById("email");
-  const passwordInput = document.getElementById("password");
+import { supabaseClient } from './supabase.js';
 
-  if (!loginForm || !emailInput || !passwordInput) {
-    console.error("عناصر نموذج تسجيل الدخول غير موجودة.");
+const loginForm = document.getElementById('loginForm');
+const emailInput = document.getElementById('email');
+const passwordInput = document.getElementById('password');
+
+async function redirectByRole(userId) {
+  const { data: employee, error } = await supabaseClient
+    .from('employees')
+    .select('role')
+    .eq('auth_id', userId)
+    .maybeSingle();
+
+  if (error || !employee) {
+    alert('تعذر العثور على بيانات الموظف في قاعدة البيانات');
     return;
   }
 
-  loginForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  if (employee.role === 'admin') {
+    window.location.href = 'dashboard.html';
+  } else {
+    window.location.href = 'employee.html';
+  }
+}
 
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
+const { data: { session } } = await supabaseClient.auth.getSession();
+if (session?.user) {
+  await redirectByRole(session.user.id);
+}
 
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
 
-    if (error) {
-      alert("فشل تسجيل الدخول: " + error.message);
-      return;
-    }
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
 
-    const userId = data.user?.id;
-    const { data: empRow, error: empError } = await supabaseClient
-      .from("employees")
-      .select("role")
-      .eq("auth_id", userId)
-      .single();
-
-    if (empError || !empRow) {
-      alert("تم تسجيل الدخول، لكن الحساب غير مربوط بجدول الموظفين (employees).");
-      return;
-    }
-
-    if (empRow.role === "admin") {
-      window.location.href = "/admin.html";
-    } else {
-      window.location.href = "/employee.html";
-    }
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password,
   });
+
+  if (error) {
+    alert('بيانات الدخول غير صحيحة: ' + error.message);
+    return;
+  }
+
+  if (data?.user) {
+    await redirectByRole(data.user.id);
+  }
 });

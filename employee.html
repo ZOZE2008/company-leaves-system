@@ -17,9 +17,21 @@
         <!-- بيانات الموظف -->
         <section id="employee-card">
             <h2>بطاقة الموظف</h2>
-            <p>اسم الموظف: <span id="employee-name">جاري التحميل...</span></p>
-            <p>البريد الإلكتروني: <span id="employee-email">...</span></p>
-            <p>الراتب الأساسي: <span id="base-salary">...</span></p>
+
+            <p>
+                اسم الموظف:
+                <span id="employee-name">جاري التحميل...</span>
+            </p>
+
+            <p>
+                البريد الإلكتروني:
+                <span id="employee-email">...</span>
+            </p>
+
+            <p>
+                الراتب الأساسي:
+                <span id="base-salary">...</span>
+            </p>
         </section>
 
         <!-- ملخص الموظف -->
@@ -55,6 +67,7 @@
         <!-- سجل الإجازات -->
         <section id="leaves-box">
             <h2>سجل الإجازات</h2>
+
             <ul id="leaves-history">
                 <li>جاري تحميل سجل الإجازات...</li>
             </ul>
@@ -63,6 +76,7 @@
         <!-- التنبيهات -->
         <section id="notifications-box">
             <h2>🔔 التنبيهات</h2>
+
             <ul id="notifications-list">
                 <li>جاري تحميل التنبيهات...</li>
             </ul>
@@ -70,9 +84,8 @@
 
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase.js"></script>
-    <script src="employee.js"></script>
+    <!-- ربط ملف JavaScript -->
+    <script type="module" src="./employee.js"></script>
 
 </body>
 </html>
