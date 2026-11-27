@@ -1,5 +1,6 @@
 // التأكد من وجود كائن الاتصال بـ Supabase من ملف supabase.js
-const sb = window.supabaseClient || window._supabase || (typeof supabaseClient !== "undefined" ? supabaseClient : null);
+import { supabaseClient } from './supabase.js';
+const sb = supabaseClient;
 
 document.addEventListener("DOMContentLoaded", async () => {
   const balanceEl = document.getElementById("remaining-balance");
@@ -55,7 +56,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                                                                                                                                                                                         const { data: leaves, error: leavesError } = await sb
                                                                                                                                                                                               .from("leaves")
                                                                                                                                                                                                     .select("*")
-                                                                                                                                                                                                          .or(`employee_id.eq.${employeeFilterId},auth_id.eq.${user.id}`)
+                                                                                                                                                                                                          .or(`employee_id.eq.${employeeFilterId},employee_id.eq.${user.id}`)
                                                                                                                                                                                                                 .order("created_at", { ascending: false });
 
                                                                                                                                                                                                                     if (leavesError) {
@@ -90,7 +91,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                                                                                                                                                                                                                                                                                                                                                         const { data: notifications, error } = await sb
                                                                                                                                                                                                                                                                                                                                                             .from("notifications")
                                                                                                                                                                                                                                                                                                                                                                 .select("*")
-                                                                                                                                                                                                                                                                                                                                                                    .or(`user_id.eq.${authId}${empId ? `,employee_id.eq.${empId}` : ""}`)
+                                                                                                                                                                                                                                                                                                                                                                    .or(`employee_id.eq.${authId}${empId ? `,employee_id.eq.${empId}` : ""}`)
                                                                                                                                                                                                                                                                                                                                                                         .order("created_at", { ascending: false });
 
                                                                                                                                                                                                                                                                                                                                                                           if (error) {

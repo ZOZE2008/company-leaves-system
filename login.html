@@ -14,7 +14,7 @@
       <p style="color: var(--text-secondary); margin-top: 8px;">أدخل بيانات حسابك للمتابعة</p>
     </div>
     
-    <form class="employee-form" onsubmit="event.preventDefault();">
+    <form class="employee-form" id="loginForm">
       <div class="form-group">
         <label class="form-label" for="email">البريد الإلكتروني</label>
         <input class="form-input" type="email" id="email" required placeholder="name@company.com">
@@ -30,7 +30,8 @@
       </div>
     </form>
   </div>
-</main>    
+</main> 
+   <script type="module" src="./login.js"></script>
 </body>
 </html>
 
