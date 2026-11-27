@@ -1,33 +1,81 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>صفحة الموظف</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحة الموظف</title>
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <h1>صفحة الموظف</h1>
 
-  <!-- صندوق / جزء التنبيهات -->
-  <section id="notifications-box">
-    <h2>🔔 التنبيهات</h2>
-    <ul id="notifications-list">
-      <li>جاري تحميل التنبيهات...</li>
-    </ul>
-  </section>
+    <main class="employee-dashboard">
 
-  <!-- أماكن عرض البيانات للقراءة فقط -->
-  <p>الرصيد المتبقي: <span id="remaining-balance">...</span></p>
-  <p>حالة البونص: <span id="bonus-status">...</span></p>
-  <p>توقع نهاية السنة: <span id="year-end-forecast">...</span></p>
+        <h1>صفحة الموظف</h1>
 
-  <h2>سجل الإجازات</h2>
-  <ul id="leaves-history">
-    <li>...</li>
-  </ul>
+        <!-- بيانات الموظف -->
+        <section id="employee-card">
+            <h2>بطاقة الموظف</h2>
+            <p>اسم الموظف: <span id="employee-name">جاري التحميل...</span></p>
+            <p>البريد الإلكتروني: <span id="employee-email">...</span></p>
+            <p>الراتب الأساسي: <span id="base-salary">...</span></p>
+        </section>
+
+        <!-- ملخص الموظف -->
+        <section id="summary-box">
+            <h2>ملخص البيانات</h2>
+
+            <p>
+                الرصيد المتبقي:
+                <span id="remaining-balance">...</span>
+            </p>
+
+            <p>
+                ساعات الأذونات المسجلة:
+                <span id="permission-hours">...</span>
+            </p>
+
+            <p>
+                حالة البونص:
+                <span id="bonus-status">...</span>
+            </p>
+
+            <p>
+                صافي الراتب المتوقع:
+                <span id="net-salary">...</span>
+            </p>
+
+            <p>
+                حالة السنة:
+                <span id="year-end-forecast">...</span>
+            </p>
+        </section>
+
+        <!-- سجل الإجازات -->
+        <section id="leaves-box">
+            <h2>سجل الإجازات</h2>
+            <ul id="leaves-history">
+                <li>جاري تحميل سجل الإجازات...</li>
+            </ul>
+        </section>
+
+        <!-- التنبيهات -->
+        <section id="notifications-box">
+            <h2>🔔 التنبيهات</h2>
+            <ul id="notifications-list">
+                <li>جاري تحميل التنبيهات...</li>
+            </ul>
+        </section>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="employee.js"></script>
 
   <!-- ربط المكتبة والملفات -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script type="module" src="./employee.js"></script>
 </body>
 </html>
-                  
