@@ -1,8 +1,9 @@
-import { supabaseClient } from "./supabase.js";
 // =====================================================
 // admin.js  (النسخة المعدّلة الكاملة)
 // يعتمد على supabase.js اللي بيعرّف المتغير supabaseClient
 // =====================================================
+
+const db = typeof supabaseClient !== "undefined" ? supabaseClient : window.supabaseClient;
 
 // لو عندك صفحة login.html فعّل الخيار ده (true) عشان يحوّل غير المسجلين
 const REQUIRE_LOGIN = false;
@@ -36,15 +37,20 @@ function protectCsvText(value) {
 
 // ---------- الخطوة 1: جلب البيانات ----------
 async function loadAdminDashboard() {
+  if (!db) {
+    console.error("لم يتم العثور على supabaseClient. تأكد من تحميل supabase.js قبل admin.js");
+    return;
+  }
+
   if (REQUIRE_LOGIN) {
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    const { data: { session } } = await db.auth.getSession();
     if (!session) {
       window.location.href = LOGIN_PAGE;
       return;
     }
   }
 
-  const { data: settingsData, error: settingsError } = await supabaseClient
+  const { data: settingsData, error: settingsError } = await db
     .from("company_settings")
     .select("bonus_amount, bonus_min_remaining_days, warning_limit_days, updated_at, hours_per_leave_day")
     .eq("id", 1)
@@ -56,7 +62,7 @@ async function loadAdminDashboard() {
     companySettings = { ...companySettings, ...settingsData };
   }
 
-  const { data: empData, error: empError } = await supabaseClient
+  const { data: empData, error: empError } = await db
     .from("employees")
     .select("id, auth_id, full_name, email, role, total_annual_days, used_days, remaining_days, base_salary, permission_hours")
     .order("id", { ascending: true });
@@ -155,6 +161,11 @@ function renderEmployeesTable() {
 async function addEmployee(event) {
   event.preventDefault();
 
+  if (!db) {
+    alert("قاعدة البيانات غير مهيأة");
+    return;
+  }
+
   const full_name = document.getElementById("full_name").value.trim();
   const email = document.getElementById("email").value.trim();
   const role = document.getElementById("role").value;
@@ -167,7 +178,7 @@ async function addEmployee(event) {
     return;
   }
 
-  const { error } = await supabaseClient
+  const { error } = await db
     .from("employees")
     .insert([
       {
@@ -201,7 +212,7 @@ function exportEmployeesCSV() {
   ];
 
   const rows = employeesList.map((emp) => [
-    Number(emp.id ?? 0),
+    `"${protectCsvText(emp.id ?? "").replace(/"/g, '""')}"`,
     `"${protectCsvText(emp.full_name).replace(/"/g, '""')}"`,
     Number(emp.base_salary ?? 0),
     Number(emp.total_annual_days ?? 0),
