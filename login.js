@@ -1,50 +1,50 @@
-import { supabaseClient } from './supabase.js';
-
 const loginForm = document.getElementById('loginForm');
-const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('password');
+const loginError = document.getElementById('loginError');
+const loginBtn = document.getElementById('loginBtn');
+
+function showError(msg) {
+  loginError.textContent = msg;
+  loginError.style.display = 'block';
+}
 
 async function redirectByRole(userId) {
-  const { data: employee, error } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from('employees')
     .select('role')
     .eq('auth_id', userId)
-    .maybeSingle();
+    .single();
 
-  if (error || !employee) {
-    alert('تعذر العثور على بيانات الموظف في قاعدة البيانات');
+  if (error || !data) {
+    await supabaseClient.auth.signOut();
+    showError('الحساب غير مربوط بجدول الموظفين');
     return;
   }
 
-  if (employee.role === 'admin') {
-    window.location.href = 'dashboard.html';
-  } else {
-    window.location.href = 'employee.html';
-  }
+  window.location.href = data.role === 'admin' ? 'admin.html' : 'employee.html';
 }
 
-const { data: { session } } = await supabaseClient.auth.getSession();
-if (session?.user) {
-  await redirectByRole(session.user.id);
-}
+// لو المستخدم مسجل دخول بالفعل
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  if (data.session) await redirectByRole(data.session.user.id);
+})();
 
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+  loginError.style.display = 'none';
+  loginBtn.disabled = true;
 
-  const email = emailInput.value.trim();
-  const password = passwordInput.value;
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({
-    email,
-    password,
-  });
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
   if (error) {
-    alert('بيانات الدخول غير صحيحة: ' + error.message);
+    showError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+    loginBtn.disabled = false;
     return;
   }
 
-  if (data?.user) {
-    await redirectByRole(data.user.id);
-  }
+  await redirectByRole(data.user.id);
+  loginBtn.disabled = false;
 });
