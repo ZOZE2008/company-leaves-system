@@ -13,12 +13,12 @@ struct Employee {
     int totalAnnualDays;
     int usedDays;
     int permissionHours;
+    double bonusAmount;
 };
 
 int main() {
     const int WARNING_LIMIT_DAYS = 15;
-    const int BONUS_MIN_REMAINING_DAYS = 10;
-    const double BONUS_AMOUNT = 1000.0;
+    const int BONUS_MIN_REMAINING_DAYS = 5;
     const int HOURS_PER_LEAVE_DAY = 8;
 
     ifstream inputFile("employees_export.csv");
@@ -29,10 +29,10 @@ int main() {
 
     vector<Employee> employees;
     string line;
-    getline(inputFile, line);
+    getline(inputFile, line); // header
 
     while (getline(inputFile, line)) {
-        if (line.empty()) continue;
+        if (line.empty() || line == "\r") continue;
         stringstream ss(line);
         string item;
         Employee emp;
@@ -42,6 +42,10 @@ int main() {
         getline(ss, item, ','); emp.totalAnnualDays = stoi(item);
         getline(ss, item, ','); emp.usedDays = stoi(item);
         getline(ss, item, ','); emp.permissionHours = stoi(item);
+        emp.bonusAmount = 0.0;
+        if (getline(ss, item, ',') && !item.empty() && item != "\r") {
+            emp.bonusAmount = stod(item);
+        }
         employees.push_back(emp);
     }
     inputFile.close();
@@ -69,8 +73,8 @@ int main() {
         } else if (effectiveUsed >= WARNING_LIMIT_DAYS) {
             status = "Warning (high usage)";
             warningCount++;
-        } else if (remaining >= BONUS_MIN_REMAINING_DAYS) {
-            bonus = BONUS_AMOUNT;
+        } else if (remaining >= BONUS_MIN_REMAINING_DAYS && emp.bonusAmount > 0) {
+            bonus = emp.bonusAmount;
             status = "Bonus";
             bonusWinners++;
         } else {
@@ -91,4 +95,4 @@ int main() {
          << " | Warnings/Deductions: " << warningCount << endl;
     cout << "Report saved to payroll_report.csv" << endl;
     return 0;
- } 
+}
