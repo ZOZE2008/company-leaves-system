@@ -1,4 +1,0 @@
-ID,Name,Base_Salary,Effective_Used_Days,Remaining_Days,Bonus,Deduction,Net_Salary,Status
-1,Ahmed,8000.00,5,16,1500.00,0.00,9500.00,Bonus
-2,Sara,8000.00,25,-4,0.00,1066.67,6933.33,Deduction (exceeded balance)
-3,Omar,8000.00,18,3,0.00,0.00,8000.00,Warning (high usage)

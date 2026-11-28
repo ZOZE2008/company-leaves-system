@@ -1,5 +1,5 @@
 // =====================================================
-// admin.js  (النسخة المعدّلة الكاملة)
+// admin.js
 // يعتمد على supabase.js اللي بيعرّف المتغير supabaseClient
 // =====================================================
 
@@ -33,6 +33,13 @@ function escapeHtml(str) {
 function protectCsvText(value) {
   const text = String(value ?? "");
   return /^[=+\-@]/.test(text) ? "'" + text : text;
+}
+
+// رقم مع قيمة افتراضية (بيقبل 0 كقيمة صحيحة، عكس || )
+function numOr(value, fallback) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const n = Number(value);
+  return Number.isNaN(n) ? fallback : n;
 }
 
 // ---------- الخطوة 1: جلب البيانات ----------
@@ -73,7 +80,71 @@ async function loadAdminDashboard() {
   }
 
   employeesList = empData || [];
+  fillSettingsForm();
   renderEmployeesTable();
+}
+
+// ---------- إعدادات الشركة (المدير) ----------
+function fillSettingsForm() {
+  const totalEl = document.getElementById("setting_total_days");
+  const minEl = document.getElementById("setting_bonus_min");
+  const amountEl = document.getElementById("setting_bonus_amount");
+  const addFormTotal = document.getElementById("total_annual_days");
+
+  // الرصيد الكلي: ناخده من أول موظف (لأنه متطبق على الكل)
+  const currentTotal = employeesList.length > 0
+    ? numOr(employeesList[0].total_annual_days, 21)
+    : 21;
+
+  if (totalEl) totalEl.value = currentTotal;
+  if (minEl) minEl.value = numOr(companySettings.bonus_min_remaining_days, 5);
+  if (amountEl) amountEl.value = numOr(companySettings.bonus_amount, 1000);
+  if (addFormTotal) addFormTotal.value = currentTotal;
+}
+
+async function saveCompanySettings(event) {
+  event.preventDefault();
+
+  const totalDays = Number(document.getElementById("setting_total_days").value);
+  const bonusMin = Number(document.getElementById("setting_bonus_min").value);
+  const bonusAmount = Number(document.getElementById("setting_bonus_amount").value);
+
+  if ([totalDays, bonusMin, bonusAmount].some((n) => Number.isNaN(n) || n < 0)) {
+    alert("يرجى إدخال أرقام صحيحة (صفر أو أكثر)");
+    return;
+  }
+
+  if (!confirm(`سيتم تغيير الحد الأقصى للإجازات إلى ${totalDays} يوم لجميع الموظفين. هل تريد المتابعة؟`)) {
+    return;
+  }
+
+  // 1) حفظ حد البونص ومبلغه
+  const { error: settingsError } = await db
+    .from("company_settings")
+    .update({
+      bonus_min_remaining_days: bonusMin,
+      bonus_amount: bonusAmount
+    })
+    .eq("id", 1);
+
+  if (settingsError) {
+    alert("تعذر حفظ الإعدادات: " + settingsError.message);
+    return;
+  }
+
+  // 2) تطبيق الرصيد الكلي على كل الموظفين
+  const { error: empError } = await db
+    .from("employees")
+    .update({ total_annual_days: totalDays })
+    .not("id", "is", null);
+
+  if (empError) {
+    alert("تم حفظ حد البونص، لكن تعذر تغيير الرصيد الكلي: " + empError.message);
+    return;
+  }
+
+  alert("تم حفظ الإعدادات");
+  await loadAdminDashboard();
 }
 
 // ---------- الخطوة 2: حساب الشارات والراتب الصافي ----------
@@ -83,10 +154,10 @@ function calculateEmployeeStats(emp) {
   const usedDays = Number(emp.used_days) || 0;
   const permissionHours = Number(emp.permission_hours) || 0;
 
-  const hoursPerLeaveDay = Number(companySettings.hours_per_leave_day) || 8;
-  const warningLimitDays = Number(companySettings.warning_limit_days) || 15;
-  const bonusMinRemainingDays = Number(companySettings.bonus_min_remaining_days) || 5;
-  const bonusAmount = Number(companySettings.bonus_amount) || 0;
+  const hoursPerLeaveDay = numOr(companySettings.hours_per_leave_day, 8) || 8;
+  const warningLimitDays = numOr(companySettings.warning_limit_days, 15);
+  const bonusMinRemainingDays = numOr(companySettings.bonus_min_remaining_days, 5);
+  const bonusAmount = numOr(companySettings.bonus_amount, 0);
 
   // الأذونات تتحول لأيام وتتحسب مع المستهلك
   const extraDays = Math.floor(permissionHours / hoursPerLeaveDay);
@@ -103,14 +174,17 @@ function calculateEmployeeStats(emp) {
     deduction = Math.abs(effectiveRemainingDays) * dailyRate;
   }
 
-  if (effectiveUsedDays >= warningLimitDays) {
-    badges.push("تجاوز الليمت");
+  const bonusEligible = effectiveRemainingDays > bonusMinRemainingDays;
+
+  // التحذير لا يظهر لمن استحق البونص
+  if (effectiveUsedDays >= warningLimitDays && !bonusEligible) {
+    badges.push("تجاوز حد التنبيه");
   }
 
-  // البونص بيعتمد على الرصيد الفعلي (بعد حساب الأذونات) عشان ما يتعارضش مع الخصم
-  if (effectiveRemainingDays >= bonusMinRemainingDays) {
+  // البونص: لو الأيام اللي سايبها (المتبقية) أكتر من حد البونص اللي حدده المدير
+  if (bonusEligible) {
     bonus = bonusAmount;
-    badges.push("مؤهل للبونص");
+    badges.push(`مؤهل للبونص (المتبقي ${effectiveRemainingDays} يوم)`);
   }
 
   const yearProgress = totalAnnualDays > 0
@@ -138,7 +212,7 @@ function renderEmployeesTable() {
     const badgesHtml = stats.badges.map((badge) => {
       let badgeClass = "status-yellow";
       if (badge.includes("مؤهل للبونص")) badgeClass = "status-green";
-      else if (badge.includes("تجاوز الليمت")) badgeClass = "status-red";
+      else if (badge.includes("تجاوز حد التنبيه")) badgeClass = "status-red";
       return `<span class="status-badge ${badgeClass}">${badge}</span>`;
     }).join(" ");
 
@@ -201,6 +275,7 @@ async function addEmployee(event) {
 }
 
 // ---------- الخطوة 3ب: تصدير CSV لبرنامج C++ ----------
+// الأعمدة من 7 لـ 10 هي إعدادات الشركة (نفس القيمة في كل الصفوف)
 function exportEmployeesCSV() {
   const headers = [
     "id",
@@ -208,16 +283,29 @@ function exportEmployeesCSV() {
     "base_salary",
     "total_annual_days",
     "used_days",
-    "permission_hours"
+    "permission_hours",
+    "bonus_min_remaining_days",
+    "bonus_amount",
+    "warning_limit_days",
+    "hours_per_leave_day"
   ];
 
+  const bonusMin = numOr(companySettings.bonus_min_remaining_days, 5);
+  const bonusAmount = numOr(companySettings.bonus_amount, 0);
+  const warningLimit = numOr(companySettings.warning_limit_days, 15);
+  const hoursPerDay = numOr(companySettings.hours_per_leave_day, 8);
+
   const rows = employeesList.map((emp) => [
-    `"${protectCsvText(emp.id ?? "").replace(/"/g, '""')}"`,
+    String(emp.id ?? ""),
     `"${protectCsvText(emp.full_name).replace(/"/g, '""')}"`,
     Number(emp.base_salary ?? 0),
     Number(emp.total_annual_days ?? 0),
     Number(emp.used_days ?? 0),
-    Number(emp.permission_hours ?? 0)
+    Number(emp.permission_hours ?? 0),
+    bonusMin,
+    bonusAmount,
+    warningLimit,
+    hoursPerDay
   ].join(","));
 
   // إضافة سطر فاضي فعلي بين كل صف والتاني عشان يبان في Excel
@@ -243,6 +331,9 @@ function exportEmployeesCSV() {
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("addEmployeeForm");
   if (form) form.addEventListener("submit", addEmployee);
+
+  const settingsForm = document.getElementById("companySettingsForm");
+  if (settingsForm) settingsForm.addEventListener("submit", saveCompanySettings);
 
   const exportBtn = document.getElementById("exportCsvBtn");
   if (exportBtn) exportBtn.addEventListener("click", exportEmployeesCSV);
