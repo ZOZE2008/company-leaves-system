@@ -220,7 +220,12 @@ function exportEmployeesCSV() {
     Number(emp.permission_hours ?? 0)
   ].join(","));
 
-  const csvContent = [headers.join(","), ...rows].join("\n");
+  // إضافة سطر فاضي فعلي بين كل صف والتاني عشان يبان في Excel
+  const spacedRows = rows.flatMap((row, index) =>
+    index < rows.length - 1 ? [row, ",,,,, "] : [row]
+  );
+  const csvContent = [headers.join(","), ...spacedRows].join("\r\n");
+
   // BOM عشان Excel يعرض العربي صح
   const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
